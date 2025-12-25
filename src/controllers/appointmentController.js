@@ -7,13 +7,30 @@ module.exports = {
       const Patient = require("../models/Patient");
       const patient = await Patient.findOne({ user: req.user.userId });
       if (!patient) return res.status(404).json({ error: "patient not found" });
+      
+      // Parse the time string and extract hour directly from string to avoid timezone issues
+      const m = String(slot).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+      if (!m) return res.status(400).json({ error: 'Invalid date format' });
+      
+      const year = Number(m[1]);
+      const month = Number(m[2]) - 1;
+      const day = Number(m[3]);
+      const hour = Number(m[4]); // Extract hour directly from string
+      const dateStr = `${m[1]}-${m[2]}-${m[3]}`;
+      
+      // Create slot date with clean hour boundary (00 minutes, 00 seconds)
+      const slotDate = new Date(year, month, day, hour, 0, 0);
+      
       const ap = new Appointment({
         patient: patient._id,
         doctor: doctorId,
-        slot: new Date(slot),
+        slot: slotDate,
+        date: dateStr,
+        hour: hour, // Use parsed hour directly, not from Date object
       });
       await ap.save();
-      res.status(201).json(ap);
+      return res.status(201).json(ap);
+      
     } catch (e) {
       if (e.code === 11000)
         return res.status(409).json({ error: "slot already booked" });
@@ -54,11 +71,18 @@ module.exports = {
     try {
       const ap = await Appointment.findById(req.params.id);
       if (!ap) return res.status(404).json({ error: "not found" });
-      if (
-        req.user.role !== "admin" &&
-        String(ap.patient) !== String(req.user.userId)
-      )
+      
+      // For patients, verify they own this appointment by checking their Patient record
+      if (req.user.role === "patient") {
+        const Patient = require("../models/Patient");
+        const patient = await Patient.findOne({ user: req.user.userId });
+        if (!patient || String(ap.patient) !== String(patient._id)) {
+          return res.status(403).json({ error: "forbidden" });
+        }
+      } else if (req.user.role !== "admin") {
         return res.status(403).json({ error: "forbidden" });
+      }
+      
       ap.status = "cancelled";
       await ap.save();
       res.json(ap);
@@ -70,16 +94,13 @@ module.exports = {
   async available(req, res) {
     try {
       const { doctorId, date } = req.query;
-      const start = new Date(date);
-      start.setHours(9, 0, 0, 0);
-      const end = new Date(date);
-      end.setHours(17, 0, 0, 0);
+      // Query using explicit date/hour to avoid timezone effects
       const booked = await Appointment.find({
         doctor: doctorId,
-        slot: { $gte: start, $lt: end },
+        date,
         status: { $ne: "cancelled" },
-      }).select("slot");
-      const bookedTimes = booked.map((b) => b.slot.getHours());
+      }).select("hour");
+      const bookedTimes = booked.map((b) => b.hour);
       const allTimes = [];
       for (let h = 9; h < 17; h++) allTimes.push(h);
       const available = allTimes.filter((h) => !bookedTimes.includes(h));

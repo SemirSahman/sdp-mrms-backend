@@ -71,14 +71,19 @@ async function run(){
     await patient.patient.save();
   }
 
-  // Create appointments
+  // Create appointments with local wall-clock slots (9-16) and explicit date/hour
   for(let i = 0; i < 15; i++){
     const patient = patients[Math.floor(Math.random() * patients.length)];
     const doctor = doctors[Math.floor(Math.random() * doctors.length)];
     const daysAhead = Math.floor(Math.random() * 30) + 1;
-    const slot = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
-    slot.setHours(9 + Math.floor(Math.random() * 8), 0, 0, 0); // 9-16 hours
-    await Appointment.create({ patient: patient.patient._id, doctor: doctor.doctor._id, slot });
+    const futureDate = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
+    const year = futureDate.getFullYear();
+    const month = futureDate.getMonth();
+    const day = futureDate.getDate();
+    const hour = 9 + Math.floor(Math.random() * 8); // 9-16 hours
+    const slot = new Date(year, month, day, hour, 0, 0);
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    await Appointment.create({ patient: patient.patient._id, doctor: doctor.doctor._id, slot, date: dateStr, hour });
   }
 
   console.log('Seed complete. Created:', { admin: 1, doctors: doctors.length, patients: patients.length, records: 20, appointments: 15 });
