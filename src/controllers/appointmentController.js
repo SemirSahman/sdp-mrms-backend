@@ -3,10 +3,21 @@ const Appointment = require("../models/Appointment");
 module.exports = {
   async book(req, res) {
     try {
-      const { doctorId, slot } = req.body;
+      const { doctorId, slot, patientId } = req.body;
       const Patient = require("../models/Patient");
-      const patient = await Patient.findOne({ user: req.user.userId });
-      if (!patient) return res.status(404).json({ error: "patient not found" });
+      const role = req.user.role;
+      
+      let patient;
+      
+      // If patientId is provided, use it (admin/doctor booking for another patient)
+      if (patientId) {
+        patient = await Patient.findById(patientId);
+        if (!patient) return res.status(404).json({ error: "patient not found" });
+      } else {
+        // Otherwise, use logged-in patient (patient booking for themselves)
+        patient = await Patient.findOne({ user: req.user.userId });
+        if (!patient) return res.status(404).json({ error: "patient not found" });
+      }
       
       // Parse the time string and extract hour directly from string to avoid timezone issues
       const m = String(slot).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);

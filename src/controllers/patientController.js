@@ -28,10 +28,16 @@ module.exports = {
   },
   async update(req,res){
     try{
-      const p = await Patient.findById(req.params.id);
+      const p = await Patient.findById(req.params.id).populate('user');
       if(!p) return res.status(404).json({ error: 'not found' });
-      if(req.body.uniqueCitizenIdentifier) p.uniqueCitizenIdentifier = req.body.uniqueCitizenIdentifier;
-      if(req.body.dob) p.dob = req.body.dob;
+
+      if (req.body.uniqueCitizenIdentifier !== undefined) p.uniqueCitizenIdentifier = req.body.uniqueCitizenIdentifier;
+      if (req.body.dob !== undefined) p.dob = req.body.dob;
+
+      if (req.body.name !== undefined) p.user.name = req.body.name;
+      if (req.body.email !== undefined) p.user.email = req.body.email;
+
+      await p.user.save();
       await p.save();
       res.json(p);
     }catch(e){ res.status(500).json({ error: e.message }); }
