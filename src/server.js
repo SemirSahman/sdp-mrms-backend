@@ -21,8 +21,14 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/records', recordRoutes);
 app.use('/api/users', userRoutes);
-app.use('/uploads', express.static('uploads'));
 app.use('/api/appointments', appointmentRoutes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: err.message });
+});
+
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('Connected to MongoDB');
@@ -32,3 +38,12 @@ mongoose.connect(MONGO_URI)
     console.error('Mongo connection error:', err);
     process.exit(1);
   });
+
+// Catch uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});

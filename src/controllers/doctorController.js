@@ -25,5 +25,15 @@ module.exports = {
       if(!d) return res.status(404).json({ error: 'not found' });
       res.json(d);
     }catch(e){ res.status(500).json({ error: e.message }); }
+  },
+  async update(req,res){
+    try{
+      const d = await Doctor.findById(req.params.id);
+      if(!d) return res.status(404).json({ error: 'not found' });
+      if(req.body.specialization) d.specialization = req.body.specialization;
+      if(req.body.contact) d.contact = req.body.contact;
+      await d.save();
+      res.json(d);
+    }catch(e){ res.status(500).json({ error: e.message }); }
   }
 };

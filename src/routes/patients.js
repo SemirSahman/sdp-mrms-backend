@@ -6,4 +6,5 @@ const router = express.Router();
 router.post('/', auth, role(['admin']), ctrl.create);
 router.get('/', auth, role(['admin','doctor']), ctrl.list);
 router.get('/:id', auth, role(['admin','doctor','patient']), ctrl.get);
+router.put('/:id', auth, role(['admin']), ctrl.update);
 module.exports = router;

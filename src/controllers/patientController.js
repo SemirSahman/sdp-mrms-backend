@@ -25,5 +25,15 @@ module.exports = {
       if(!p) return res.status(404).json({ error: 'not found' });
       res.json(p);
     }catch(e){ res.status(500).json({ error: e.message }); }
+  },
+  async update(req,res){
+    try{
+      const p = await Patient.findById(req.params.id);
+      if(!p) return res.status(404).json({ error: 'not found' });
+      if(req.body.uniqueCitizenIdentifier) p.uniqueCitizenIdentifier = req.body.uniqueCitizenIdentifier;
+      if(req.body.dob) p.dob = req.body.dob;
+      await p.save();
+      res.json(p);
+    }catch(e){ res.status(500).json({ error: e.message }); }
   }
 };

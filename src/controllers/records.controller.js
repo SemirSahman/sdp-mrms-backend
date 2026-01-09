@@ -50,4 +50,22 @@ module.exports = {
 
     res.status(201).json(record);
   },
+  async updateRecord(req, res) {
+    try {
+      const { title, description, patient } = req.body;
+      const record = await Record.findById(req.params.id);
+      
+      if (!record) return res.status(404).json({ error: 'Record not found' });
+      
+      if (title) record.title = title;
+      if (description) record.description = description;
+      if (patient) record.patient = patient;
+      if (req.file) record.fileUrl = `/uploads/${req.file.filename}`;
+      
+      await record.save();
+      res.json(record);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  }
 };
